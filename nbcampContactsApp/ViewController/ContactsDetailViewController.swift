@@ -5,10 +5,11 @@
 //  Created by Chanho Lee on 4/16/25.
 //
 import UIKit
-import SnapKit
 import Alamofire
 
 class ContactsDetailViewController: UIViewController {
+    
+    let contactsDetailView = ContactsDetailView()
     
     private var data: [Contact] = []
     
@@ -23,124 +24,45 @@ class ContactsDetailViewController: UIViewController {
             }
         }
     }
-    
-    private let profileImage: UIImageView = {
-        let imageView = UIImageView()
-        let colorConfig = UIImage.SymbolConfiguration(hierarchicalColor: .blue)
-        if let image = UIImage(systemName: "questionmark.circle.fill", withConfiguration: colorConfig) {
-            imageView.image = image
-        } else {
-            imageView.image = UIImage(systemName: "questionmark.circle.fill")
-        }
-        imageView.contentMode = .scaleAspectFit
-        imageView.layer.cornerRadius = 75
-        imageView.layer.borderColor = .init(red: 128/255,
-                                            green: 128/255,
-                                            blue: 128/255,
-                                            alpha: 0.8)
-        imageView.layer.borderWidth = 2
-        imageView.clipsToBounds = true
-        return imageView
-    }()
-    
-    private lazy var getImageButton: UIButton = {
-        let button = UIButton()
-        button.setTitle("랜덤 이미지 생성", for: .normal)
-        button.setTitleColor(.label, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 12)
-        button.addTarget(self, action: #selector(randomButtonTapped), for: .touchUpInside)
-        return button
-    }()
-    
-    private let nameTextField: UITextField = {
-        let textField = UITextField()
-        textField.attributedPlaceholder = NSAttributedString(
-            string: "이름을 입력하세요",
-            attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
-        )
-        textField.textColor = .label
-        textField.borderStyle = .roundedRect
-        return textField
-    }()
-    
-    private let numberTextField: UITextField = {
-        let textField = UITextField()
-        textField.attributedPlaceholder = NSAttributedString(
-            string: "전화번호를 입력하세요",
-            attributes: [NSAttributedString.Key.foregroundColor: UIColor.gray]
-        )
-        textField.textColor = .label
-        textField.borderStyle = .roundedRect
-        textField.keyboardType = .phonePad
-        return textField
-    }()
-    
 }
 
 extension ContactsDetailViewController {
     
+    override func loadView() {
+        super.loadView()
+        view = contactsDetailView
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         print("viewDidLoad[ContactsDetail]")
-        configureUI()
         configureNavigationBar()
+        configureButtonAction()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
         configureNavigationBar()
     }
     
     //ContactsListViewController에서 테이블 뷰 셀클릭시 호출되는 메서드
     func configureEditUI() {
-        nameTextField.text = data[indexPath.row].name
-        numberTextField.text = data[indexPath.row].phoneNumber
-        profileImage.image = UIImage(data: data[indexPath.row].profileImage)
+        contactsDetailView.nameTextField.text = data[indexPath.row].name
+        contactsDetailView.numberTextField.text = data[indexPath.row].phoneNumber
+        contactsDetailView.profileImage.image = UIImage(data: data[indexPath.row].profileImage)
         
         //네비게이션 바 설정 메서드 호출
         configureNavigationBar(title: data[indexPath.row].name,
                                buttonTitle: "수정",
                                action: #selector(editButtonTapped))
     }
+    
+    func configureButtonAction() {
+        contactsDetailView.getImageButton.addTarget(self, action: #selector(randomButtonTapped), for: .touchUpInside)
+    }
 }
 
 private extension ContactsDetailViewController {
-    
-    private func configureUI() {
-        view.backgroundColor = .systemBackground
-        [
-            profileImage,
-            getImageButton,
-            nameTextField,
-            numberTextField,
-        ].forEach{ view.addSubview($0) }
-        
-        profileImage.snp.makeConstraints {
-            $0.size.equalTo(150)
-            $0.centerX.equalToSuperview()
-            $0.top.equalTo(view.safeAreaLayoutGuide).inset(24)
-        }
-        
-        getImageButton.snp.makeConstraints {
-            $0.width.equalTo(profileImage.snp.width)
-            $0.height.equalTo(20)
-            $0.centerX.equalToSuperview()
-            $0.top.equalTo(profileImage.snp.bottom).offset(8)
-        }
-        
-        nameTextField.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(20)
-            $0.trailing.equalToSuperview().inset(20)
-            $0.centerX.equalToSuperview()
-            $0.top.equalTo(getImageButton.snp.bottom).offset(32)
-        }
-        
-        numberTextField.snp.makeConstraints {
-            $0.leading.equalToSuperview().inset(20)
-            $0.trailing.equalToSuperview().inset(20)
-            $0.centerX.equalToSuperview()
-            $0.top.equalTo(nameTextField.snp.bottom).offset(12)
-        }
-    }
     
     //NavigationBar 설정 메서드
     private func configureNavigationBar(title: String = "포켓몬 추가", //파라미터 없이 호출 시 기본적으로 저장을 목적으로 설정됨
@@ -171,7 +93,7 @@ private extension ContactsDetailViewController {
                     }
                     AF.request(imageURL).response { [weak self] response in
                         if let data = response.data, let image = UIImage(data: data) {
-                            self?.profileImage.image = image
+                            self?.contactsDetailView.profileImage.image = image
                         }
                     }
                     self?.imageName = result.species.name
@@ -201,14 +123,14 @@ private extension ContactsDetailViewController {
     @objc private func addButtonTapped() {
         print("addButtonTapped")
         do {
-            guard let name = nameTextField.text, !name.isEmpty else {
+            guard let name = contactsDetailView.nameTextField.text, !name.isEmpty else {
                 throw ContactsDetailViewError.nameTextFieldIsEmpty
             }
-            guard let number = numberTextField.text, !number.isEmpty else {
+            guard let number = contactsDetailView.numberTextField.text, !number.isEmpty else {
                 throw ContactsDetailViewError.numberTextFiledIsEmpty
             }
             
-            guard let profileImageData = profileImage.image!.pngData() else {
+            guard let profileImageData = contactsDetailView.profileImage.image!.pngData() else {
                 throw ContactsDetailViewError.failedCovertingProfileImage
             }
             
@@ -233,14 +155,14 @@ private extension ContactsDetailViewController {
         
         let currentData = data[indexPath.row]
         do {
-            guard let name = nameTextField.text, !name.isEmpty else {
+            guard let name = contactsDetailView.nameTextField.text, !name.isEmpty else {
                 throw ContactsDetailViewError.nameTextFieldIsEmpty
             }
-            guard let number = numberTextField.text, !number.isEmpty else {
+            guard let number = contactsDetailView.numberTextField.text, !number.isEmpty else {
                 throw ContactsDetailViewError.numberTextFiledIsEmpty
             }
             
-            guard let profileImageData = profileImage.image!.pngData() else {
+            guard let profileImageData = contactsDetailView.profileImage.image!.pngData() else {
                 throw ContactsDetailViewError.failedCovertingProfileImage
             }
             let editedContact = Contact(uuid: currentData.uuid,

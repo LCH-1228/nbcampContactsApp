@@ -6,49 +6,42 @@
 //
 
 import UIKit
-import SnapKit
 import Alamofire
 
 class ContactsListViewController: UIViewController {
     
+    let contactsListView = ContactsListView()
+    
     private var data: [Contact] = []
     
-    private lazy var contactList: UITableView = {
-        let tableView = UITableView()
-        tableView.delegate = self
-        tableView.dataSource = self
-        tableView.register(ContactsListCell.self,
-                           forCellReuseIdentifier: ContactsListCell.identifier)
-        return tableView
-    }()
 }
 
 extension ContactsListViewController {
     
+    override func loadView() {
+        view = contactsListView
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         print("vewDidLoad[ViewController]")
-        
-        configureUI()
+        configureTableView()
         configureNav()
     }
     
     override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         reloadData()
     }
 }
 
 private extension ContactsListViewController {
     
-    private func configureUI() {
-        [
-            contactList,
-        ].forEach{ view.addSubview($0) }
-        
-        contactList.snp.makeConstraints {
-            $0.size.equalToSuperview()
-            $0.center.equalToSuperview()
-        }
+    private func configureTableView() {
+        contactsListView.contactList.delegate = self
+        contactsListView.contactList.dataSource = self
+        contactsListView.contactList.register(ContactsListCell.self,
+                           forCellReuseIdentifier: ContactsListCell.identifier)
     }
     
     private func configureNav() {
@@ -64,7 +57,7 @@ private extension ContactsListViewController {
         data = CoreDataManager.shared.getAllData().sorted{
             $0.name < $1.name
         }
-        contactList.reloadData()
+        contactsListView.contactList.reloadData()
     }
     
     //진화시 기존에 이미지가 없을 경우 랜덤이미지 생성을 위한 메서드
@@ -214,7 +207,7 @@ private extension ContactsListViewController {
     
     //추가 버튼 클릭시 동작
     @objc private func showContactsDetailView() {
-        navigationController?.pushViewController(ContactsDetailViewController(), animated: false)
+        navigationController?.pushViewController(ContactsDetailViewController(), animated: true)
     }
 }
 
@@ -235,7 +228,7 @@ extension ContactsListViewController: UITableViewDelegate {
         //전달받은 indexPath로 UI설정
         contactsDetailViewController.configureEditUI()
         
-        navigationController?.pushViewController(contactsDetailViewController, animated: false)
+        navigationController?.pushViewController(contactsDetailViewController, animated: true)
     }
     
     // TableView leadingSwipeAction에 진화 버튼 정의
